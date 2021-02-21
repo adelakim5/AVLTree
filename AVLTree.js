@@ -3,107 +3,76 @@ const Node = require("./Node.js");
 class AVLTree {
   constructor() {
     this.root = null;
-    this.size = 0;
   }
 
-  insert(data) {
-    const node = new Node(data);
-    if (!this.root) {
-      this.root = node;
-      this.size++;
-      return;
+  rotateRight(node) {
+    const x = node.left;
+    node.left = x.right;
+    x.right = node;
+    node.height = this.tallerHeight(this.height(node.left), this.height(node.right)) + 1;
+    x.height = this.tallerHeight(this.height(x.left), this.height(x.right)) + 1;
+    return x;
+  }
+
+  rotateLeft(node) {
+    const x = node.right;
+    node.right = x.left;
+    x.left = node;
+    node.height = this.tallerHeight(this.height(node.left), this.height(node.right)) + 1;
+    x.height = this.tallerHeight(this.height(x.left), this.height(x.right)) + 1;
+    return x;
+  }
+
+  tallerHeight(a, b) {
+    return Math.max(a, b);
+  }
+
+  height(node) {
+    if (!node) return 0;
+    return node.height;
+  }
+
+  put(key, value) {
+    this.root = this.trickleDown(this.root, key, value);
+  }
+
+  compareTo(key, id) {
+    if (key > id) return 1;
+    if (key === id) return 0;
+    if (key < id) return -1;
+  }
+
+  trickleDown(node, key, value) {
+    if (!node) return new Node(key, value, 1);
+    const t = this.compareTo(key, node.id);
+    if (t > 0) {
+      node.right = this.trickleDown(node.right, key, value);
+    } else if (t < 0) {
+      node.left = this.trickleDown(node.left, key, value);
+    } else {
+      node.name = value;
+      return node;
     }
-    this.trickleDown(node, this.root);
+    node.height = this.tallerHeight(this.height(node.left), this.height(node.right)) + 1;
+    return this.balance(node);
   }
 
-  trickleDown(node, root) {
-    if (node.data > root.data) {
-      // go right
-      root.rightChildCnt++;
-      if (root.getBF() >= 2) {
-        // turn
-        if (root.right.data < node.data) {
-          // rr turn
-          this.turnRR(node, root);
-        } else if (root.right.data > node.data) {
-          // rl turn
-
-          const temp = root.right;
-          root.right = node;
-          root.right.leftChildCnt = temp.leftChildCnt;
-          root.right.rightChildCnt = temp.rightChildCnt;
-          root.right = temp.right;
-          root.left = temp.left;
-          this.trickleDown(temp, root);
-        }
-      } else {
-        if (root.right) this.trickleDown(node, root.right);
-        else {
-          root.right = node;
-          this.size++;
-          return;
-        }
-      }
-    } else if (node.data < root.data) {
-      // go left
-      root.leftChildCnt++;
-      if (root.getBF() >= 2) {
-        if (root.left.data > node.data) {
-          this.turnLL(node, root);
-        } else if (root.left.data < node.data) {
-          // this.turnLL(node, root);
-          const temp = root.left;
-          root.left = node;
-          root.left.leftChildCnt = temp.leftChildCnt;
-          root.left.rightChildCnt = temp.rightChildCnt;
-          root.left = temp.left;
-          root.right = temp.right;
-          this.trickleDown(temp, root);
-        }
-      } else {
-        if (root.left) this.trickleDown(node, root.left);
-        else {
-          root.left = node;
-          this.size++;
-          return;
-        }
-      }
+  balance(node) {
+    if (this.bf(node) > 1) {
+      // heavy on left
+      if (this.bf(node.left) < 0) node.left = this.rotateLeft(node.left); // node.left has heavy right-tree
+      node = this.rotateRight(node);
+    } else if (this.bf(node) < -1) {
+      // heavy on right
+      if (this.bf(node.right) > 0) node.right = this.rotateRight(node.right); // node.right has heavy left-tree
+      node = this.rotateLeft(node);
     }
+    return node;
   }
 
-  turnRR(node, root) {
-    const temp = root;
-    // root left 있는지 확인해야 함
-    root = root.right;
-    if (temp === this.root) this.root = root;
-    if (temp === this.root.left) this.root.left = root;
-    if (temp === this.root.right) this.root.right = root;
-    root.left = temp;
-    if (temp.rightChildCnt) temp.rightChildCnt--;
-    root.leftChildCnt = temp.leftChildCnt + 1;
-    root.left.right = null;
-    root.left.rightChildCnt = 0;
-    this.trickleDown(node, root);
-  }
-
-  turnLL(node, root) {
-    const temp = root;
-    root = root.left;
-    if (temp === this.root) this.root = root;
-    if (temp === this.root.left) this.root.left = root;
-    if (temp === this.root.right) this.root.right = root;
-    root.right = temp;
-    if (temp.leftChildCnt) temp.leftChildCnt--;
-    root.rightChildCnt = temp.rightChildCnt + 1;
-    root.right.left = null;
-    root.right.leftChildCnt = 0;
-    this.trickleDown(node, root);
+  bf(node) {
+    return this.height(node.left) - this.height(node.right);
   }
 }
 
-// const data = [50, 60, 70, 80, 40];
-const data = [50, 60, 70, 90, 80, 75, 73, 72, 78];
-
-const avl = new AVLTree();
-data.forEach((e) => avl.insert(e));
-console.log(avl.root);
+module.exports = AVLTree;
